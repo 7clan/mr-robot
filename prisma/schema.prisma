@@ -1,0 +1,147 @@
+// Prisma schema for the from-scratch AI agent
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Knowledge facts the AI has learned or been taught
+model Fact {
+  id        String   @id @default(cuid())
+  subject   String   // e.g. "paris"
+  predicate String   // e.g. "is-capital-of"
+  object    String   // e.g. "france"
+  source    String   @default("user") // user | web | system
+  weight    Float    @default(1.0) // confidence / frequency
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subject])
+  @@index([predicate])
+}
+
+// Conversation messages
+model Message {
+  id        String   @id @default(cuid())
+  role      String   // user | assistant | system
+  content   String
+  intent    String?
+  metadata  String?  // JSON string
+  createdAt DateTime @default(now())
+}
+
+// Web search results cached
+model SearchResult {
+  id        String   @id @default(cuid())
+  query     String
+  title     String
+  url       String
+  snippet   String
+  content   String?
+  createdAt DateTime @default(now())
+
+  @@index([query])
+}
+
+// Agent tasks / actions
+model AgentTask {
+  id        String   @id @default(cuid())
+  goal      String
+  status    String   @default("pending") // pending | running | completed | failed
+  steps     String?  // JSON array of steps
+  result    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Mistakes the AI has made and the fixes it learned
+model MistakeLog {
+  id             String   @id @default(cuid())
+  context        String   // what the AI was trying to do
+  errorOutput    String   // the error text
+  fixApplied     String   // what the AI did to fix it
+  fixDescription String?
+  success        Boolean  @default(false)
+  occurrenceCount Int     @default(1)
+  successCount   Int     @default(0)
+  successRate    Float   @default(0)
+  firstSeenAt    DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+
+  @@index([errorOutput])
+}
+
+// ============================================================
+// v12 additions: Local LLM, Terms of Service, Training data
+// ============================================================
+
+// User-editable Terms of Service for the AI
+model TermsOfService {
+  id        String   @id @default(cuid())
+  version   Int      @default(1)
+  title     String   @default("Alazantrik Terms of Service")
+  body      String   // markdown / plain text
+  accepted  Boolean  @default(false)
+  acceptedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Training examples collected from user feedback
+// (used for export to LoRA fine-tuning, and for in-browser preference learning)
+model TrainingExample {
+  id          String   @id @default(cuid())
+  prompt      String   // user message
+  response    String   // AI response
+  rating      Int      // -1 (bad) | 0 (neutral) | 1 (good)
+  correction  String?  // user's corrected version (if rating = -1)
+  intent      String?
+  sources     String?  // JSON: which web sources were cited
+  modelName   String?  // which LLM produced this
+  createdAt   DateTime @default(now())
+
+  @@index([rating])
+  @@index([createdAt])
+}
+
+// LoRA adapter metadata (when user fine-tunes externally and imports)
+model LoRAAdapter {
+  id          String   @id @default(cuid())
+  name        String
+  baseModel   String   // e.g. "Llama-3.2-1B-Instruct"
+  path        String   // local path or URL
+  description String?
+  active      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+// LLM chat sessions (for memory across reloads)
+model ChatSession {
+  id        String   @id @default(cuid())
+  title     String
+  messages  String   // JSON array
+  modelUsed String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
