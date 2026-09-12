@@ -1,125 +1,141 @@
-# Mr Robot — From-Scratch AI Assistant with Embedded Open-Source LLM
+# Mr Robot — Local AI Assistant and Developer Environment
 
-An AI assistant that runs **entirely on-device** with zero external APIs. Combines a from-scratch NLP stack with real open-source LLMs (Llama-3.2, Qwen-2.5, Phi-3.5) running in-browser via WebGPU.
+Mr Robot is an experimental **local-first AI assistant** that combines educational NLP/ML components implemented in TypeScript with externally trained open-source language models running in-browser through WebLLM/WebGPU.
 
-## Quick Start
+The project explores a practical question: how much of an AI assistant's surrounding intelligence stack—retrieval, grounding, memory, tooling, correction capture, developer workflows, and orchestration—can be built and inspected locally instead of hidden behind a hosted API.
+
+## Important distinction
+
+Mr Robot contains two different kinds of AI components:
+
+1. **Custom educational implementations** — tokenizer, stemming, classification, a feed-forward neural network, a compact transformer-style model, knowledge/memory logic, and orchestration utilities.
+2. **Pretrained language models** — models such as Llama, Qwen, and Phi loaded through WebLLM/WebGPU for actual language-model inference.
+
+The custom transformer is a learning/experimentation component; it is **not** presented as a replacement for the pretrained LLMs. This distinction matters because the project is about understanding and composing AI-system components, not claiming to have trained a frontier model from scratch.
+
+## Core capabilities
+
+### Local LLM inference
+
+- Runs supported pretrained models in the browser through WebLLM/WebGPU.
+- Streams generated tokens to the application.
+- Keeps model inference local when using the local-LLM path.
+- Optional web retrieval naturally requires network access; therefore the project is local-first rather than literally network-free in every mode.
+
+### Grounded generation
+
+The grounding layer can inject retrieved web context into the model prompt and request inline source references. Follow-up reference resolution helps later questions refer back to previously retrieved material.
+
+This separates the generation model from the evidence-gathering step and makes unsupported output easier to detect than an unconstrained chat response.
+
+### Educational NLP/ML stack
+
+The codebase includes hand-built implementations for learning and experimentation, including:
+
+- byte-pair encoding (BPE) tokenization
+- Porter stemming
+- multinomial Naive Bayes classification
+- feed-forward neural network training/backpropagation
+- a compact multi-layer transformer-style implementation
+- structured knowledge-base storage
+- conversation/memory utilities
+- multi-step planning/orchestration logic
+
+These components are intentionally small and inspectable.
+
+### Developer-agent tooling
+
+Mr Robot also experiments with the software-engineering layer around an assistant:
+
+- project/framework scaffolding
+- code/file workspace operations
+- controlled terminal execution
+- Git operations
+- development-server lifecycle management
+- multi-file rename/refactor support
+- known-error detection and automated fix patterns
+- database-backed capture of repeated mistakes/fixes
+
+### Correction and training-data workflow
+
+User corrections can be collected and exported in formats commonly used for later model experimentation, including JSONL-style instruction/conversation datasets. The repository includes guidance for downstream fine-tuning workflows; it does not claim that the included pretrained LLMs were originally trained by this project.
+
+## Architecture
+
+```text
+User Interface
+     ↓
+Assistant / Orchestration Layer
+     ├── Local pretrained LLM via WebLLM
+     ├── Custom NLP/ML components
+     ├── Grounding + web retrieval
+     ├── Memory / knowledge storage
+     └── Developer tools
+     ↓
+Prisma / SQLite persistence
+```
+
+Representative modules under `src/lib/ai/` include:
+
+```text
+brain.ts
+local-llm.ts
+grounded-generation.ts
+terms-of-service.ts
+training-collector.ts
+web-search.ts
+classifier.ts
+neural-net.ts
+transformer.ts
+```
+
+## Technology
+
+- Next.js 16
+- React 19
+- TypeScript
+- Prisma + SQLite
+- WebLLM / WebGPU
+- Web Speech API
+- Next.js API routes and streaming responses
+
+## Why this project matters
+
+The most useful lesson from Mr Robot was not simply connecting a model to a chat UI. Building the surrounding system exposed several deeper problems:
+
+- how retrieved evidence should constrain generation
+- how local inference changes privacy and deployment tradeoffs
+- how model output can be connected safely to tools
+- how conversational state and references should be resolved
+- how corrections can be captured for later improvement
+- where small hand-built ML components help understanding even when production-quality pretrained models are still needed
+
+Those questions are what pushed the project from general full-stack development toward information retrieval, grounded LLM systems, and reliable AI software.
+
+## Quick start
 
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Set up the database
 npx prisma db push
 npx prisma generate
-
-# 3. Start the dev server
 npm run dev
-
-# 4. Open http://localhost:3000/chat
 ```
 
-## Browser Requirements
+Open:
 
-For the Local LLM tab (WebGPU):
-- Chrome 113+, Edge 113+, Brave, or Arc
-- ~1-3 GB free RAM/VRAM depending on model
-
-For all other features (Chat from-scratch mode, Code Studio, Terminal, Git, etc.):
-- Any modern browser
-
-## What's Inside
-
-### From-Scratch NLP Stack (~12,000 lines of TypeScript)
-- **BPE Tokenizer** — byte-pair encoding for subword tokenization
-- **Porter Stemmer** — reduces words to roots (running → run)
-- **Naive Bayes Classifier** — multinomial with Laplace smoothing
-- **Neural Network** — feedforward with backpropagation
-- **Transformer** — 4 layers, 4 attention heads, dim=64
-- **Knowledge Base** — subject-predicate-object triples in SQLite
-- **Conversation Memory** — sliding window with embeddings
-- **Chain-of-Thought Reasoning** — multi-step planning
-
-### Real LLM Integration (WebLLM)
-- Runs Llama-3.2-1B/3B, Qwen-2.5-0.5B/1.5B, Phi-3.5-mini in-browser
-- Streaming token generation
-- 8 models available (all Apache 2.0 or MIT)
-
-### Grounded Generation (Hallucination Prevention)
-- Web search results injected into LLM prompt
-- Forces inline citations [Source N]
-- Reference resolution for follow-up questions
-
-### Custom Terms of Service
-- User-editable, versioned ToS
-- Injected into LLM system prompt
-
-### Training Pipeline
-- Collect corrections on AI responses
-- Export as JSONL/Alpaca/ShareGPT/DPO
-- LoRA fine-tuning guide included
-
-### Agent Capabilities
-- **19 framework scaffolders** (React, Next.js, Vue, Angular, Svelte, etc.)
-- **Code Studio** — file explorer + editor
-- **Terminal** — safe command runner (60+ binaries)
-- **Git integration** — init, commit, log, branches, diff
-- **Dev server manager** — start/stop/monitor
-- **Multi-file rename refactor**
-- **50+ error patterns** with auto-fix + DB-backed mistake learning
-
-## Tech Stack
-
-- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS, shadcn/ui
-- **Backend**: Next.js API Routes, SSE streaming
-- **Database**: SQLite via Prisma ORM
-- **AI/ML**: WebLLM, custom neural network, transformer, classifier
-- **Voice**: Web Speech API (TTS + STT)
-
-## Project Structure
-
-```
-src/
-├── app/
-│   ├── page.tsx              # Root → redirects to /chat
-│   ├── chat/                 # Mr Robot AI chat (13 tabs)
-│   └── api/ai/               # 22 API endpoints
-├── components/               # React components
-└── lib/
-    ├── ai/                   # 28 AI modules
-    │   ├── brain.ts          # Main orchestrator
-    │   ├── local-llm.ts      # WebLLM wrapper
-    │   ├── grounded-generation.ts
-    │   ├── terms-of-service.ts
-    │   ├── training-collector.ts
-    │   ├── web-search.ts     # Bing/Google/DDG scraping
-    │   ├── classifier.ts     # Naive Bayes
-    │   ├── neural-net.ts     # Feedforward NN
-    │   ├── transformer.ts    # 4-layer transformer
-    │   └── ...               # 19 more modules
-    └── db.ts                 # Prisma client
-└── prisma/
-    └── schema.prisma         # 8 models
+```text
+http://localhost:3000/chat
 ```
 
-## Stats
+WebGPU-backed local LLM inference requires a compatible modern browser and sufficient memory for the selected model.
 
-- ~12,000 lines of TypeScript in `src/lib/ai/`
-- 28 AI modules
-- 13 UI tabs
-- 22 REST API endpoints
-- 8 Prisma models
-- 8 LLM models supported
-- 19 framework scaffolders
-- 50+ auto-fix error patterns
+## Development note
 
-## License
-
-- **Source code**: MIT — do whatever you want
-- **WebLLM runtime**: Apache 2.0
-- **Underlying LLMs**: Apache 2.0 (Llama, Qwen), MIT (Phi)
+The repository is presented as an engineering and learning project. Quantitative counts in the source tree should be treated as implementation-scale indicators rather than research-performance claims; no benchmark is claimed unless it is explicitly reproducible from the repository.
 
 ## Author
 
 **Mohammad Farhat**
+
 - GitHub: [@7clan](https://github.com/7clan)
 - Portfolio: [mohammad-farhat.surge.sh](https://mohammad-farhat.surge.sh)
